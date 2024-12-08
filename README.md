@@ -78,7 +78,7 @@ A: 已经有计划拿C重写predict了，，，
 
 Q: 这玩意的准确度好差啊
 
-A: 因为是在很小的数据集(150w)上进行的预训练，所以泛化能力很差很正常，，，可以在更大数据集或者更加细分的领域进行微调，具体微调方式和[Chinese-BERT-wwm](https://github.com/ymcui/Chinese-BERT-wwm)差别不大，只需要将`DataCollactor`替换为`CustomBertModel.py`中的`DataCollatorForMultiMask`。
+A: 因为是在很小的数据集(200w)上进行的预训练，所以泛化能力很差很正常，，，可以在更大数据集或者更加细分的领域进行微调，具体微调方式和[Chinese-BERT-wwm](https://github.com/ymcui/Chinese-BERT-wwm)差别不大，只需要将`DataCollactor`替换为`CustomBertModel.py`中的`DataCollatorForMultiMask`。
 
 ### 引用
 如果您对CNMBert的具体实现感兴趣的话，可以参考
