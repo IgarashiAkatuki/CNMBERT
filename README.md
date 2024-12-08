@@ -80,5 +80,18 @@ Q: 这玩意的准确度好差啊
 
 A: 因为是在很小的数据集(150w)上进行的预训练，所以泛化能力很差很正常，，，可以在更大数据集或者更加细分的领域进行微调，具体微调方式和[Chinese-BERT-wwm](https://github.com/ymcui/Chinese-BERT-wwm)差别不大，只需要将`DataCollactor`替换为`CustomBertModel.py`中的`DataCollatorForMultiMask`。
 
+### 引用
+如果您对CNMBert的具体实现感兴趣的话，可以参考
+```
+@misc{feng2024cnmbertmodelhanyupinyin,
+      title={CNMBert: A Model For Hanyu Pinyin Abbreviation to Character Conversion Task}, 
+      author={Zishuo Feng and Feng Cao},
+      year={2024},
+      eprint={2411.11770},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2411.11770}, 
+}
+```
 
 
