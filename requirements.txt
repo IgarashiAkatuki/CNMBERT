@@ -1,6 +1,6 @@
-jupyter==7.2.2
-pytorch==2.4.0
-numpy==2.1.1
-transformers==4.45.2
-pypinyin==0.53.0
+jupyter>=7.2.0
+pytorch>=2.4.0
+numpy>=2.1.1
+transformers>=4.45.0
+pypinyi>=0.53.0
 pkuseg==0.0.25
