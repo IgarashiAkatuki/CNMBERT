@@ -29,7 +29,7 @@
 | CNMBert-Default | [Huggingface](https://huggingface.co/Midsummra/CNMBert)     | 0.4GB               | 12.56 | 58.88 | 49.13 |
 | CNMBert-MoE     | [Huggingface](https://huggingface.co/Midsummra/CNMBert-MoE) | 0.8GB               | 3.20  | 60.56 | 51.09 |
 
-* 所有模型均在相同的150w条wiki以及知乎语料下训练
+* 所有模型均在相同的150万条wiki以及知乎语料下训练
 * QPS 为 queries per second (由于没有使用c重写predict所以现在性能很糟...)
 * MRR 为平均倒数排名(mean reciprocal rank)
 * Acc 为准确率(accuracy)
@@ -47,7 +47,7 @@ from MoELayer import BertWwmMoE
 
 ```python
 # use CNMBert with MoE
-# if you want to use CNMBert without MoE, please change all "Midsummra/CNMBert-MoE" to "Midsummra/CNMBert" and use BertForMaskedLM instead of using BertWwmMoE
+# To use CNMBert without MoE, replace all "Midsummra/CNMBert-MoE" with "Midsummra/CNMBert" and use BertForMaskedLM instead of using BertWwmMoE
 tokenizer = AutoTokenizer.from_pretrained("Midsummra/CNMBert-MoE")
 config = BertConfig.from_pretrained('Midsummra/CNMBert-MoE')
 model = BertWwmMoE.from_pretrained('Midsummra/CNMBert-MoE', config=config).to('cuda')
