@@ -400,6 +400,7 @@ def fixed_predict(sentence: str,
         else:
             replaced_word.append(28)
 
+    sentence = sentence.lower()
     inputs = tokenizer(sentence, max_length=64,
                        padding='max_length',
                        truncation=True,
