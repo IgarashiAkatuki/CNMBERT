@@ -1,4 +1,5 @@
 # zh-CN-Multi-Mask-Bert (CNMBert)
+![image](https://github.com/user-attachments/assets/a888fde7-6766-43f1-a753-810399418bda)
 
 ---
 
