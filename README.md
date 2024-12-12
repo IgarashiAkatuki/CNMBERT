@@ -2,7 +2,7 @@
 
 ---
 
-为了解决拼音缩写问题而训练的模型
+一个用来翻译拼音缩写的模型
 
 此模型基于[Chinese-BERT-wwm](https://github.com/ymcui/Chinese-BERT-wwm)训练而来，通过修改其预训练任务来使其适配拼音缩写翻译任务，相较于微调过的GPT模型以及GPT-4o达到了sota
 
