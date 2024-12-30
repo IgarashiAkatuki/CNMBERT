@@ -27,8 +27,8 @@
 
 | Model           | 模型权重                                                    | Memory Usage (FP16) | QPS   | MRR   | Acc   |
 | --------------- | ----------------------------------------------------------- | ------------------- | ----- | ----- | ----- |
-| CNMBert-Default | [Huggingface](https://huggingface.co/Midsummra/CNMBert)     | 0.4GB               | 12.56 | 58.88 | 49.13 |
-| CNMBert-MoE     | [Huggingface](https://huggingface.co/Midsummra/CNMBert-MoE) | 0.8GB               | 3.20  | 60.56 | 51.09 |
+| CNMBert-Default | [Huggingface](https://huggingface.co/Midsummra/CNMBert)     | 0.4GB               | 12.56 | 59.70 | 49.74 |
+| CNMBert-MoE     | [Huggingface](https://huggingface.co/Midsummra/CNMBert-MoE) | 0.8GB               | 3.20  | 61.53 | 51.86 |
 
 * 所有模型均在相同的150万条wiki以及知乎语料下训练
 * QPS 为 queries per second (由于没有使用c重写predict所以现在性能很糟...)
@@ -69,7 +69,7 @@ print(fixed_predict("快去给魔理沙看b吧", "b", model, tokenizer[:5]))
 
 ### 如何微调模型
 
-请参考TrainExample.ipynb,在数据集的格式上，只要保证csv的第一列为要训练的语料即可。
+请参考[TrainExample.ipynb](https://github.com/IgarashiAkatuki/CNMBert/blob/main/TrainExample.ipynb),在数据集的格式上，只要保证csv的第一列为要训练的语料即可。
 
 ### Q&A
 
