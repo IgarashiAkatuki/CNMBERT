@@ -40,7 +40,7 @@
 ```python
 from transformers import AutoTokenizer, BertConfig
 
-from CustomBertModel import fixed_predict
+from CustomBertModel import predict
 from MoELayer import BertWwmMoE
 ```
 
