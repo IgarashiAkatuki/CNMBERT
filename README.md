@@ -59,8 +59,8 @@ model = BertWwmMoE.from_pretrained('Midsummra/CNMBert-MoE', config=config).to('c
 预测词语
 
 ```python
-print(fixed_predict("我有两千kq", "kq", model, tokenizer)[:5])
-print(fixed_predict("快去给魔理沙看b吧", "b", model, tokenizer[:5]))
+print(predict("我有两千kq", "kq", model, tokenizer)[:5])
+print(predict("快去给魔理沙看b吧", "b", model, tokenizer[:5]))
 ```
 
 > ['块钱', 1.2056937473156175], ['块前', 0.05837443749364857], ['开千', 0.0483869208528063], ['可千', 0.03996622172280445], ['口气', 0.037183335575008414]
@@ -73,13 +73,7 @@ print(fixed_predict("快去给魔理沙看b吧", "b", model, tokenizer[:5]))
 
 ### Q&A
 
-Q: 这玩意的速度太慢啦！！！
-
-A: 已经有计划拿C重写predict了，，，
-
-
-
-Q: 这玩意的准确度好差啊
+Q: 感觉这个东西准确度有点低啊
 
 A: 因为是在很小的数据集(200w)上进行的预训练，所以泛化能力很差很正常，，，可以在更大数据集或者更加细分的领域进行微调，具体微调方式和[Chinese-BERT-wwm](https://github.com/ymcui/Chinese-BERT-wwm)差别不大，只需要将`DataCollactor`替换为`CustomBertModel.py`中的`DataCollatorForMultiMask`。
 
