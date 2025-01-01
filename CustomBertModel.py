@@ -1,108 +1,19 @@
+import math
 import warnings
 import random
-from collections import defaultdict
-from typing import Optional, Union, Tuple, List, Mapping, Any, Dict
-import copy
 import torch
-from sqlalchemy.dialects.postgresql import array
-from sympy.stats.sampling.sample_numpy import numpy
-from transformers.data.data_collator import _torch_collate_batch, tolist, _numpy_collate_batch, \
-    DataCollatorForLanguageModeling
-from transformers.modeling_outputs import MaskedLMOutput
 import torch.nn.functional as F
 import re
 import copy
+import numpy as np
+import pkuseg
 
-
-
-def get_custom_masks() -> dict:
-    return {
-        '[NUM]': 22128,
-        '[LETTER_A]': 22129,
-        '[LETTER_B]': 22130,
-        '[LETTER_C]': 22131,
-        '[LETTER_D]': 22132,
-        '[LETTER_E]': 22133,
-        '[LETTER_F]': 22134,
-        '[LETTER_G]': 22135,
-        '[LETTER_H]': 22136,
-        '[LETTER_I]': 22137,
-        '[LETTER_J]': 22138,
-        '[LETTER_K]': 22139,
-        '[LETTER_L]': 22140,
-        '[LETTER_M]': 22141,
-        '[LETTER_N]': 22142,
-        '[LETTER_O]': 22143,
-        '[LETTER_P]': 22144,
-        '[LETTER_Q]': 22145,
-        '[LETTER_R]': 22146,
-        '[LETTER_S]': 22147,
-        '[LETTER_T]': 22148,
-        '[LETTER_U]': 22149,
-        '[LETTER_V]': 22150,
-        '[LETTER_W]': 22151,
-        '[LETTER_X]': 22152,
-        '[LETTER_Y]': 22153,
-        '[LETTER_Z]': 22154
-    }
-
-
-from transformers import DataCollatorForWholeWordMask, BertTokenizer, BertTokenizerFast
-from pypinyin import pinyin, lazy_pinyin, Style
-
-
-class DataCollatorForWholeWordMaskWithMultipleMASKS(DataCollatorForWholeWordMask):
-    # {'input_ids':
-    # tensor([[ 101, 4269, 1071, 2141, 2769, 3193, 2218, 3221, 3189, 3315,  782,  749,
-    #           102,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    #             0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    #             0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    #             0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    #             0,    0,    0,    0]]),
-    # 'chinese_ref': [[3, 6, 9]],
-    # 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    #          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    #          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])}
-    def __call__(self, examples):
-        batch = super().__call__(examples)
-        # 自动生成 attention_mask
-        batch['attention_mask'] = (batch['input_ids'] != self.tokenizer.pad_token_id).long()
-        for i in range(len(batch['input_ids'])):
-            text = self.tokenizer.decode(batch['input_ids'][i])
-            labels = batch['labels'][i]
-            masked_tokens = torch.where(batch['input_ids'][i] == 103)[0]
-            words = []
-            index = 0
-            for j in range(len(masked_tokens)):
-                if j == 0:
-                    words.append(self.tokenizer.decode(labels[int(masked_tokens[j])]))
-                    continue
-                if masked_tokens[j - 1] + 1 == masked_tokens[j]:
-                    words[index] += self.tokenizer.decode(labels[int(masked_tokens[j])])
-                else:
-                    index += 1
-                    words.append(self.tokenizer.decode(labels[int(masked_tokens[j])]))
-            index = 0
-            for word in words:
-                first_letter = pinyin(word, style=Style.FIRST_LETTER)
-                for letter in first_letter:
-                    if index >= len(masked_tokens):
-                        break
-                    if len(letter) == 0 or letter[0] == ' ':
-                        print(1)
-                        continue
-                    if letter == '## ':
-                        # index += 1
-                        continue
-                    if str.islower(letter[0][0]):
-                        batch['input_ids'][i][masked_tokens[index]] = 1 - 97 + ord(letter[0][0])
-                    else:
-                        batch['input_ids'][i][masked_tokens[index]] = 103
-                    index += 1
-                    if index >= len(masked_tokens):
-                        break
-            # print(len(batch['input_ids'][i]))
-        return batch
+from collections import defaultdict
+from typing import Union, Tuple, List, Mapping, Any, Dict
+from transformers.data.data_collator import _torch_collate_batch, tolist, _numpy_collate_batch, \
+    DataCollatorForLanguageModeling
+from transformers import BertTokenizer, BertTokenizerFast
+from pypinyin import pinyin, Style
 
 
 class DataCollatorForMultiMask(DataCollatorForLanguageModeling):
@@ -334,11 +245,6 @@ class DataCollatorForMultiMask(DataCollatorForLanguageModeling):
                 print(mask_ids)
                 print(indices_total)
 
-        # 10% of the time, we replace masked input tokens with random word
-        # indices_random = torch.bernoulli(torch.full(labels.shape, 0.5)).bool() & masked_indices & ~indices_replaced
-        # random_words = torch.randint(len(self.tokenizer), labels.shape, dtype=torch.long)
-        # inputs[indices_random] = random_words[indices_random]
-
         return inputs, labels
 
     def numpy_mask_tokens(self, inputs: Any, mask_labels: Any) -> Tuple[Any, Any]:
@@ -382,201 +288,17 @@ class DataCollatorForMultiMask(DataCollatorForLanguageModeling):
         return inputs, labels
 
 
-from torch.nn import CrossEntropyLoss
-import numpy as np
-
-from transformers import BertForMaskedLM
-import pkuseg
-seg = pkuseg.pkuseg()
-
-class MultiMaskedLM(BertForMaskedLM):
-    def forward(
-            self,
-            input_ids: Optional[torch.Tensor] = None,
-            attention_mask: Optional[torch.Tensor] = None,
-            token_type_ids: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.Tensor] = None,
-            head_mask: Optional[torch.Tensor] = None,
-            inputs_embeds: Optional[torch.Tensor] = None,
-            encoder_hidden_states: Optional[torch.Tensor] = None,
-            encoder_attention_mask: Optional[torch.Tensor] = None,
-            labels: Optional[torch.Tensor] = None,
-            output_attentions: Optional[bool] = None,
-            output_hidden_states: Optional[bool] = None,
-            return_dict: Optional[bool] = None,
-    ) -> Union[Tuple[torch.Tensor], MaskedLMOutput]:
-        r"""
-        labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
-            Labels for computing the masked language modeling loss. Indices should be in `[-100, 0, ...,
-            config.vocab_size]` (see `input_ids` docstring) Tokens with indices set to `-100` are ignored (masked), the
-            loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`
-        """
-
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-
-        outputs = self.bert(
-            input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-            encoder_hidden_states=encoder_hidden_states,
-            encoder_attention_mask=encoder_attention_mask,
-            output_attentions=output_attentions,
-            output_hidden_states=output_hidden_states,
-            return_dict=return_dict,
-        )
-
-        sequence_output = outputs[0]
-        prediction_scores = self.cls(sequence_output)
-        # print(prediction_scores)
-        masked_lm_loss = None
-
-        if labels is not None:
-            loss_fct = CrossEntropyLoss()  # -100 index = padding token
-            masked_lm_loss = loss_fct(prediction_scores.view(-1, self.config.vocab_size), labels.view(-1))
-
-        if not return_dict:
-            output = (prediction_scores,) + outputs[2:]
-            return ((masked_lm_loss,) + output) if masked_lm_loss is not None else output
-
-        return MaskedLMOutput(
-            loss=masked_lm_loss,
-            logits=prediction_scores,
-            hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions,
-        )
-
+__seg = pkuseg.pkuseg()
 
 def predict(sentence: str,
             predict_word: str,
             model,
             tokenizer,
-            top_k=10):
-    replaced_word = []
-    for letter in predict_word:
-        if str.isdigit(letter):
-            replaced_word.append(27)
-            continue
-        id = ord(letter) - 96
-        if 1 <= id <= 26:
-            replaced_word.append(id)
-        else:
-            replaced_word.append(28)
-
-    inputs = tokenizer(sentence, max_length=64,
-                       padding='max_length',
-                       truncation=True,
-                       return_tensors='pt').to('cuda')
-    index = sentence.find(predict_word)
-    if index == -1 or len(predict_word) >= 3 or str.isdigit(predict_word):
-        # print(1)
-        sentence = sentence.replace(predict_word, '[MASK][MASK]')
-        inputs = tokenizer(sentence, max_length=512,
-                           padding='max_length',
-                           truncation=True,
-                           return_tensors='pt').to('cuda')
-    else:
-        try:
-            inputs['input_ids'][0][index + 1:index + 1 + len(replaced_word)] = torch.tensor(replaced_word).to('cuda')
-        except Exception:
-            print('error')
-            return []
-    # sentence.find(predict_word)
-    with torch.no_grad():
-        logits = model(**inputs).logits
-    # retrieve index of [MASK]
-    mask_token_index = []
-    temp = torch.nonzero(inputs['input_ids'] == 103, as_tuple=True)
-    if len(temp[0]) > 0:
-        mask_token_index.extend(temp[1].tolist())
-    for i in range(28):
-        temp = torch.nonzero(inputs['input_ids'] == (i + 1), as_tuple=True)
-        if len(temp[0]) > 0:
-            mask_token_index.extend(temp[1].tolist())
-    mask_token_index = sorted(mask_token_index)
-
-    mask_token_logits = logits[0, mask_token_index, :]
-    mask_token_probs = F.softmax(mask_token_logits, dim=-1)
-    top_k_probs, top_k_tokens = torch.topk(mask_token_probs, top_k, dim=1)
-
-
-    # if len(top_k_tokens) == 0:
-    #     print('不存在mask')
-    #     return
-    # # 解码 top-k tokens 并输出它们的概率
-    # for i in range(top_k):
-    #     tokens = []
-    #     probs = 0.0
-    #     for j in range(len(top_k_tokens[:, i])):
-    #         tokens.append(top_k_tokens[j, i])
-    #         probs += top_k_probs[j, i].item()
-    #     predicted_token = tokenizer.decode(tokens)
-    #     probs /= len(top_k_tokens[:, i])
-    #     print(f"Predicted token: {predicted_token}, Probability: {probs:.4f}")
-    results = []
-    dfs(results=results,
-        depth=0,
-        probability=1.0,
-        top_k_probs=top_k_probs,
-        top_k_tokens=top_k_tokens,
-        tokenizer=tokenizer,
-        sentence=[],
-        top_k=top_k)
-    results.sort(key=lambda x: x[1], reverse=True)
-    return results
-
-def dfs(results: list,
-        depth: int,
-        probability: float,
-        top_k_tokens,
-        top_k_probs,
-        tokenizer,
-        sentence: list,
-        top_k: int=10):
-
-    # total_predict = []
-    # for i in range(len(top_k_probs[:, 0])):
-    #     total_predict.append(torch.sum(top_k_probs[i, :]).tolist())
-
-    for i in range(top_k):
-
-        token = top_k_tokens[depth, i]
-        decoded_token = tokenizer.decode(token)
-        sentence.append(decoded_token)  # 使用列表来管理句子
-
-        current_prob = top_k_probs[depth, i].item()
-        new_probability = probability * current_prob  # 累加每个token的概率
-
-        # 如果达到了最后一层深度，记录结果
-        if depth == len(top_k_tokens[:, 0]) - 1:
-            if new_probability >= 0.00:
-                if len(seg.cut(''.join(sentence))) <= 1:
-                    results.append([''.join(sentence), new_probability])
-                # else:
-                # cnmbert-default.append([''.join(sentence), new_probability])
-                # if len(cnmbert-default) >= top_k:
-                #     return
-        else:
-            # 继续递归到下一层
-            dfs(results,
-                depth=depth+1,
-                probability=new_probability,
-                top_k_tokens=top_k_tokens,
-                top_k_probs=top_k_probs,
-                tokenizer=tokenizer,
-                sentence=sentence,
-                top_k=top_k)
-
-        # 回溯时撤销添加的token
-        sentence.pop()
-
-def fixed_predict(sentence: str,
-            predict_word: str,
-            model,
-            tokenizer,
-            top_k=10):
+            top_k=8,
+            beam_size=16,
+            threshold=0.005,
+            fast_mode=True,
+            strict_mode=True):
     replaced_word = []
     for letter in predict_word:
         if str.isdigit(letter):
@@ -601,44 +323,30 @@ def fixed_predict(sentence: str,
         print('error')
         return []
 
-    # with torch.no_grad():
-    #     logits = model(**inputs).logits
-    #
-    # # retrieve index of [MASK]
-    # mask_token_index = []
-    # temp = torch.nonzero(inputs['input_ids'] == 103, as_tuple=True)
-    # if len(temp[0]) > 0:
-    #     mask_token_index.extend(temp[1].tolist())
-    # for i in range(28):
-    #     temp = torch.nonzero(inputs['input_ids'] == (i + 1), as_tuple=True)
-    #     if len(temp[0]) > 0:
-    #         mask_token_index.extend(temp[1].tolist())
-    # mask_token_index = sorted(mask_token_index)
-    #
-    # mask_token_logits = logits[0, mask_token_index, :]
-    # mask_token_probs = F.softmax(mask_token_logits, dim=-1)
-    # top_k_probs, top_k_tokens = torch.topk(mask_token_probs, top_k, dim=1)
-
     results_a = []
     results_b = []
-    fixed_dfs(results=results_a,
-        depth=length-1,
-        probability=1.0,
-        tokenizer=tokenizer,
-        sentence=[],
-        inputs=copy.deepcopy(inputs),
-        model=model,
-        index=index,
-        top_k=top_k)
-    fixed_dfs_back(results=results_b,
-        depth=length-1,
-        probability=1.0,
-        tokenizer=tokenizer,
-        sentence=[],
-        inputs=copy.deepcopy(inputs),
-        model=model,
-        index=index + length,
-        top_k=top_k)
+    __beam_search(results_a,
+                beam_size=beam_size,
+                max_depth=length,
+                tokenizer=tokenizer,
+                inputs=copy.deepcopy(inputs),
+                model=model,
+                top_k=top_k,
+                threshold=threshold,
+                index=index,
+                strict_mode=strict_mode)
+
+    if not fast_mode:
+        __beam_search_back(results_b,
+                         beam_size=beam_size,
+                         max_depth=length,
+                         tokenizer=tokenizer,
+                         inputs=copy.deepcopy(inputs),
+                         model=model,
+                         top_k=top_k,
+                         threshold=threshold,
+                         index=index + length,
+                         strict_mode=strict_mode)
     result_dict = defaultdict(int)
     for val in results_a + results_b:
         key = val[0]
@@ -649,7 +357,72 @@ def fixed_predict(sentence: str,
     return results
 
 
-def fixed_dfs(results: list,
+def backtrack_predict(sentence: str,
+            predict_word: str,
+            model,
+            tokenizer,
+            top_k=10,
+            fast_mode=True,
+            strict_mode=True):
+    replaced_word = []
+    for letter in predict_word:
+        if str.isdigit(letter):
+            replaced_word.append(27)
+            continue
+        id = ord(letter) - 96
+        if 1 <= id <= 26:
+            replaced_word.append(id)
+        else:
+            replaced_word.append(28)
+
+    inputs = tokenizer(sentence, max_length=64,
+                       padding='max_length',
+                       truncation=True,
+                       return_tensors='pt').to('cuda')
+    index = sentence.find(predict_word)
+    length = len(predict_word)
+
+    try:
+        inputs['input_ids'][0][index + 1:index + 1 + length] = torch.tensor(replaced_word).to('cuda')
+    except Exception:
+        print('error')
+        return []
+
+    results_a = []
+    results_b = []
+    __fixed_dfs(results=results_a,
+        depth=length-1,
+        probability=1.0,
+        tokenizer=tokenizer,
+        sentence=[],
+        inputs=copy.deepcopy(inputs),
+        model=model,
+        index=index,
+        top_k=top_k,
+        strict_mode=strict_mode)
+
+    if not fast_mode:
+        __fixed_dfs_back(results=results_b,
+            depth=length-1,
+            probability=1.0,
+            tokenizer=tokenizer,
+            sentence=[],
+            inputs=copy.deepcopy(inputs),
+            model=model,
+            index=index + length,
+            top_k=top_k,
+            strict_mode=strict_mode)
+    result_dict = defaultdict(int)
+    for val in results_a + results_b:
+        key = val[0]
+        value = val[1]
+        result_dict[key] += value
+    results = [[key, val] for key, val in result_dict.items()]
+    results.sort(key=lambda x: x[1], reverse=True)
+    return results
+
+
+def __fixed_dfs(results: list,
               depth: int,
               probability: float,
               tokenizer,
@@ -657,22 +430,16 @@ def fixed_dfs(results: list,
               inputs: str,
               model,
               index: int,
-              top_k: int=5
-              ):
+              top_k: int=5,
+              strict_mode=True):
 
     with torch.no_grad():
         logits = model(**inputs).logits
 
     # retrieve index of [MASK]
-    mask_token_index = []
-    temp = torch.nonzero(inputs['input_ids'] == 103, as_tuple=True)
-    if len(temp[0]) > 0:
-        mask_token_index.extend(temp[1].tolist())
-    for i in range(28):
-        temp = torch.nonzero(inputs['input_ids'] == (i + 1), as_tuple=True)
-        if len(temp[0]) > 0:
-            mask_token_index.extend(temp[1].tolist())
-    mask_token_index = sorted(mask_token_index)
+    mask_token_index = torch.where((inputs['input_ids'] == 103) |
+                                   ((inputs['input_ids'] >= 1) &
+                                    (inputs['input_ids'] <= 28)))[1].tolist()
     mask_token_logits = logits[0, mask_token_index, :]
     mask_token_probs = F.softmax(mask_token_logits, dim=-1)
     top_k_probs, top_k_tokens = torch.topk(mask_token_probs, top_k, dim=1)
@@ -684,24 +451,26 @@ def fixed_dfs(results: list,
 
         if depth == 0:
             if new_probability >= 0.00:
-                if len(seg.cut(''.join(sentence))) <= 1:
+                if not strict_mode or len(__seg.cut(''.join(sentence))) <= 1:
                     results.append([''.join(sentence), new_probability])
         else:
-            inputs['input_ids'][0][index+1] = top_k_tokens[0, i]
-            fixed_dfs(results=results,
+            original_value = torch.clone(inputs['input_ids'][0][index + 1])
+            inputs['input_ids'][0][index + 1] = top_k_tokens[0, i]
+            __fixed_dfs(results=results,
                       depth=depth-1,
                       probability=new_probability,
                       tokenizer=tokenizer,
                       sentence=sentence,
-                      inputs=copy.deepcopy(inputs),
+                      inputs=inputs,
                       model=model,
                       index=index+1,
                       top_k=top_k-2)
+            inputs['input_ids'][0][index + 1] = original_value
         sentence.pop()
 
 
 
-def fixed_dfs_back(results: list,
+def __fixed_dfs_back(results: list,
               depth: int,
               probability: float,
               tokenizer,
@@ -709,8 +478,8 @@ def fixed_dfs_back(results: list,
               inputs: str,
               model,
               index: int,
-              top_k: int=5
-              ):
+              top_k: int=5,
+              strict_mode=True):
 
     with torch.no_grad():
         logits = model(**inputs).logits
@@ -736,11 +505,11 @@ def fixed_dfs_back(results: list,
         new_probability = probability * prob
         if depth == 0:
             if new_probability >= 0.00:
-                if len(seg.cut(''.join(sentence))) <= 1:
+                if not strict_mode or len(__seg.cut(''.join(sentence))) <= 1:
                     results.append([''.join(sentence), new_probability])
         else:
             inputs['input_ids'][0][index] = top_k_tokens[-1, i]
-            fixed_dfs_back(results=results,
+            __fixed_dfs_back(results=results,
                       depth=depth-1,
                       probability=new_probability,
                       tokenizer=tokenizer,
@@ -751,35 +520,136 @@ def fixed_dfs_back(results: list,
                       top_k=top_k-2)
         sentence.pop(0)
 
+def __beam_search_back(results: list,
+                beam_size: int,
+                max_depth: int,
+                tokenizer,
+                inputs: str,
+                model,
+                top_k: int=5,
+                threshold: float=0.01,
+                index: int=0,
+                strict_mode=True):
+    beams = [[inputs, [], 1.0, index]]
 
-def get_expert_index(sentence: str,
-           predict_word: str,
-            model,
-            tokenizer,
-            top_k=10):
-    replaced_word = []
-    for letter in predict_word:
-        if str.isdigit(letter):
-            replaced_word.append(27)
-            continue
-        id = ord(letter) - 96
-        if 1 <= id <= 26:
-            replaced_word.append(id)
-        else:
-            replaced_word.append(28)
+    for depth in range(max_depth):
+        new_beams = []
 
-    inputs = tokenizer(sentence, max_length=64,
-                       padding='max_length',
-                       truncation=True,
-                       return_tensors='pt').to('cuda')
-    index = sentence.find(predict_word)
-    length = len(predict_word)
+        for inputs, sentence, probability, index in beams:
+            with torch.no_grad():
+                logits = model(**inputs).logits
 
-    try:
-        inputs['input_ids'][0][index + 1:index + 1 + len(replaced_word)] = torch.tensor(replaced_word).to('cuda')
-    except Exception:
-        print('error')
-        return []
+            mask_token_index = torch.where(
+                (inputs['input_ids'] == 103) |
+                ((inputs['input_ids'] >= 1) & (inputs['input_ids'] <= 28))
+            )[1].tolist()
 
-    with torch.no_grad():
-        logits = model(**inputs).logits
+            if not mask_token_index:
+                continue
+
+            mask_token_logits = logits[0, mask_token_index, :]
+            mask_token_probs = F.softmax(mask_token_logits, dim=-1)
+            top_k_probs, top_k_tokens = torch.topk(mask_token_probs, top_k, dim=1)
+
+            tokens = tokenizer.decode(top_k_tokens[-1, 0:top_k]).split(' ')
+            for i in range(len(tokens)):
+                new_probability = probability * top_k_probs[-1, i].item()
+
+                if new_probability < threshold:
+                    continue
+
+                new_inputs = copy.deepcopy(inputs)
+                new_inputs['input_ids'][0][index] = top_k_tokens[-1, i]
+
+                new_sentence = sentence.copy()
+                new_sentence.insert(0, tokens[i])
+                new_beams.append([new_inputs, new_sentence, new_probability, index - 1])
+        if len(new_beams) > 0:
+            softmax(new_beams)
+        new_beams = sorted(new_beams, key=lambda x: x[2], reverse=True)[:beam_size]
+
+        if not new_beams:
+            break
+
+        if top_k > 2:
+            top_k -= 2
+        beams = new_beams
+
+    for _, sentence, probability, _ in beams:
+        sentence = ''.join(sentence)
+        if not strict_mode or len(__seg.cut(sentence)) <= max(len(sentence) - 2, 1):
+            results.append((sentence, probability))
+
+    return results
+
+def __beam_search(results: list,
+                beam_size: int,
+                max_depth: int,
+                tokenizer,
+                inputs: str,
+                model,
+                top_k: int=5,
+                threshold: float=0.01,
+                index: int=0,
+                strict_mode=True):
+    beams = [[inputs, [], 1.0, index]]
+
+    for depth in range(max_depth):
+        new_beams = []
+
+        for inputs, sentence, probability, index in beams:
+            with torch.no_grad():
+                logits = model(**inputs).logits
+
+            mask_token_index = torch.where(
+                (inputs['input_ids'] == 103) |
+                ((inputs['input_ids'] >= 1) & (inputs['input_ids'] <= 28))
+            )[1].tolist()
+
+            if not mask_token_index:
+                continue
+
+            mask_token_logits = logits[0, mask_token_index, :]
+            mask_token_probs = F.softmax(mask_token_logits, dim=-1)
+            top_k_probs, top_k_tokens = torch.topk(mask_token_probs, top_k, dim=1)
+
+            tokens = tokenizer.decode(top_k_tokens[0, 0:top_k]).split(' ')
+            for i in range(len(tokens)):
+                new_probability = probability * top_k_probs[0, i].item()
+
+                if new_probability < threshold:
+                    continue
+
+                new_inputs = copy.deepcopy(inputs)
+                new_inputs['input_ids'][0][index + 1] = top_k_tokens[0, i]
+
+                new_sentence = sentence + [tokens[i]]
+                new_beams.append([new_inputs, new_sentence, new_probability, index + 1])
+        if len(new_beams) > 0:
+            softmax(new_beams)
+        new_beams = sorted(new_beams, key=lambda x: x[2], reverse=True)[:beam_size]
+
+        if not new_beams:
+            break
+
+        if top_k > 2:
+            top_k -= 2
+        beams = new_beams
+
+    for _, sentence, probability, _ in beams:
+        sentence = ''.join(sentence)
+        if not strict_mode or len(__seg.cut(sentence)) <= max(len(sentence) - 2, 1):
+            results.append((sentence, probability))
+
+    return results
+
+def softmax(beams: List):
+    column_2 = [row[2] for row in beams]
+
+    max_val = max(column_2)
+    exp_values = [math.exp(v - max_val) for v in column_2]
+    sum_exp = sum(exp_values)
+    softmax_column =  [v / sum_exp for v in exp_values]
+
+    for i, row in enumerate(beams):
+        row[2] = softmax_column[i]
