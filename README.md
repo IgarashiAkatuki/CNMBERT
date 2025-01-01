@@ -25,10 +25,10 @@
 
 ### CNMBert
 
-| Model           | 模型权重                                                    | Memory Usage (FP16) | QPS   | MRR   | Acc   |
-| --------------- | ----------------------------------------------------------- | ------------------- | ----- | ----- | ----- |
-| CNMBert-Default | [Huggingface](https://huggingface.co/Midsummra/CNMBert)     | 0.4GB               | 12.56 | 59.70 | 49.74 |
-| CNMBert-MoE     | [Huggingface](https://huggingface.co/Midsummra/CNMBert-MoE) | 0.8GB               | 3.20  | 61.53 | 51.86 |
+| Model           | 模型权重                                                    | Memory Usage (FP16) | Model Size | QPS   | MRR   | Acc   |
+| --------------- | ----------------------------------------------------------- | ------------------- | ---------- | ----- | ----- | ----- |
+| CNMBert-Default | [Huggingface](https://huggingface.co/Midsummra/CNMBert)     | 0.4GB               | 131M       | 12.56 | 59.70 | 49.74 |
+| CNMBert-MoE     | [Huggingface](https://huggingface.co/Midsummra/CNMBert-MoE) | 0.8GB               | 329M       | 3.20  | 61.53 | 51.86 |
 
 * 所有模型均在相同的200万条wiki以及知乎语料下训练
 * QPS 为 queries per second (由于没有使用c重写predict所以现在性能很糟...)
@@ -67,6 +67,34 @@ print(predict("快去给魔理沙看b吧", "b", model, tokenizer[:5]))
 
 > ['病', 1.6893256306648254], ['吧', 0.1642467901110649], ['呗', 0.026976384222507477], ['包', 0.021441461518406868], ['报', 0.01396679226309061]
 
+---
+
+```python
+# 默认的predict函数使用束搜索
+def predict(sentence: str, 
+            predict_word: str,
+            model,
+            tokenizer,
+            top_k=8,
+            beam_size=16, # 束宽
+            threshold=0.005, # 阈值
+            fast_mode=True, # 是否使用快速模式
+            strict_mode=True): # 是否对输出结果进行检查
+            
+# 使用回溯的无剪枝暴力搜索
+def backtrack_predict(sentence: str,
+            predict_word: str,
+            model,
+            tokenizer,
+            top_k=10,
+            fast_mode=True,
+            strict_mode=True):
+```
+
+> 由于BERT的自编码特性，导致其在预测MASK时，顺序不同会导致预测结果不同，如果启用`fast_mode`，则会正向和反向分别对输入进行预测，可以提升一点准确率(2%左右)，但是会带来更大的性能开销。
+
+> `strict_mode`会对输入进行检查，以判断其是否为一个真实存在的汉语词汇。
+
 ### 如何微调模型
 
 请参考[TrainExample.ipynb](https://github.com/IgarashiAkatuki/CNMBert/blob/main/TrainExample.ipynb),在数据集的格式上，只要保证csv的第一列为要训练的语料即可。
@@ -75,7 +103,7 @@ print(predict("快去给魔理沙看b吧", "b", model, tokenizer[:5]))
 
 Q: 感觉这个东西准确度有点低啊
 
-A: 因为是在很小的数据集(200w)上进行的预训练，所以泛化能力很差很正常，，，可以在更大数据集或者更加细分的领域进行微调，具体微调方式和[Chinese-BERT-wwm](https://github.com/ymcui/Chinese-BERT-wwm)差别不大，只需要将`DataCollactor`替换为`CustomBertModel.py`中的`DataCollatorForMultiMask`。
+A: 可以尝试设置`fast_mode`和`strict_mode`为`False`。 模型是在很小的数据集(200w)上进行的预训练，所以泛化能力不足很正常，，，可以在更大数据集或者更加细分的领域进行微调，具体微调方式和[Chinese-BERT-wwm](https://github.com/ymcui/Chinese-BERT-wwm)差别不大，只需要将`DataCollactor`替换为`CustomBertModel.py`中的`DataCollatorForMultiMask`。
 
 ### 引用
 如果您对CNMBert的具体实现感兴趣的话，可以参考
@@ -90,5 +118,4 @@ A: 因为是在很小的数据集(200w)上进行的预训练，所以泛化能�
       url={https://arxiv.org/abs/2411.11770}, 
 }
 ```
-
 
