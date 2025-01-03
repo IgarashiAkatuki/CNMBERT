@@ -31,7 +31,7 @@
 | CNMBert-MoE     | [Huggingface](https://huggingface.co/Midsummra/CNMBert-MoE) | 0.8GB               | 329M       | 3.20  | 61.53 | 51.86 |
 
 * 所有模型均在相同的200万条wiki以及知乎语料下训练
-* QPS 为 queries per second (由于没有使用c重写predict所以现在性能很糟...)
+* QPS 为 queries per second 
 * MRR 为平均倒数排名(mean reciprocal rank)
 * Acc 为准确率(accuracy)
 
