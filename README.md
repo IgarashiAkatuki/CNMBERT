@@ -35,6 +35,11 @@
 * MRR 为平均倒数排名(mean reciprocal rank)
 * Acc 为准确率(accuracy)
 
+模型架构&性能对比:
+![overall (1)](https://github.com/user-attachments/assets/cf9575c4-c37d-484b-8a3b-f8f536ca78c9)
+![output](https://github.com/user-attachments/assets/3de2b56d-f8cb-40f1-8ffa-68968bbd2ed5)
+
+
 ### Usage
 
 ```python
