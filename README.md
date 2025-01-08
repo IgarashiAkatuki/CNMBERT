@@ -1,4 +1,5 @@
 # zh-CN-Multi-Mask-Bert (CNMBert🍋)
+~~吃柠檬Bert~~
 ![image](https://github.com/user-attachments/assets/a888fde7-6766-43f1-a753-810399418bda)
 
 ---
@@ -27,13 +28,14 @@
 
 | Model           | 模型权重                                                    | Memory Usage (FP16) | Model Size | QPS   | MRR   | Acc   |
 | --------------- | ----------------------------------------------------------- | ------------------- | ---------- | ----- | ----- | ----- |
-| CNMBert-Default | [Huggingface](https://huggingface.co/Midsummra/CNMBert)     | 0.4GB               | 131M       | 12.56 | 59.70 | 49.74 |
+| CNMBert-Default* | [Huggingface](https://huggingface.co/Midsummra/CNMBert)     | 0.4GB               | 131M       | 12.56 | 59.70 | 49.74 |
 | CNMBert-MoE     | [Huggingface](https://huggingface.co/Midsummra/CNMBert-MoE) | 0.8GB               | 329M       | 3.20  | 61.53 | 51.86 |
 
 * 所有模型均在相同的200万条wiki以及知乎语料下训练
 * QPS 为 queries per second 
 * MRR 为平均倒数排名(mean reciprocal rank)
 * Acc 为准确率(accuracy)
+* CNMBert-Default 存在[量化版本](https://huggingface.co/mradermacher/CNMBert-GGUF)
 
 模型架构&性能对比:
 ![overall (1)](https://github.com/user-attachments/assets/cf9575c4-c37d-484b-8a3b-f8f536ca78c9)
