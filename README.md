@@ -105,6 +105,7 @@ def backtrack_predict(sentence: str,
 ### 如何微调模型
 
 请参考[TrainExample.ipynb](https://github.com/IgarashiAkatuki/CNMBert/blob/main/TrainExample.ipynb),在数据集的格式上，只要保证csv的第一列为要训练的语料即可。
+> 感觉冻结其他层只训练embedding也可以(? 有空会试一下的
 
 ### Q&A
 
