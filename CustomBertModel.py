@@ -451,7 +451,7 @@ def __fixed_dfs(results: list,
 
         if depth == 0:
             if new_probability >= 0.00:
-                if not strict_mode or len(__seg.cut(''.join(sentence))) <= 1:
+                if not strict_mode or len(__seg.cut(sentence)) <= max(len(sentence) - 1, 1):
                     results.append([''.join(sentence), new_probability])
         else:
             original_value = torch.clone(inputs['input_ids'][0][index + 1])
@@ -505,7 +505,7 @@ def __fixed_dfs_back(results: list,
         new_probability = probability * prob
         if depth == 0:
             if new_probability >= 0.00:
-                if not strict_mode or len(__seg.cut(''.join(sentence))) <= 1:
+                if not strict_mode or len(__seg.cut(sentence)) <= max(len(sentence) - 1, 1):
                     results.append([''.join(sentence), new_probability])
         else:
             inputs['input_ids'][0][index] = top_k_tokens[-1, i]
@@ -577,7 +577,7 @@ def __beam_search_back(results: list,
 
     for _, sentence, probability, _ in beams:
         sentence = ''.join(sentence)
-        if not strict_mode or len(__seg.cut(sentence)) <= max(len(sentence) - 2, 1):
+        if not strict_mode or len(__seg.cut(sentence)) <= max(len(sentence) - 1, 1):
             results.append((sentence, probability))
 
     return results
@@ -638,7 +638,7 @@ def __beam_search(results: list,
 
     for _, sentence, probability, _ in beams:
         sentence = ''.join(sentence)
-        if not strict_mode or len(__seg.cut(sentence)) <= max(len(sentence) - 2, 1):
+        if not strict_mode or len(__seg.cut(sentence)) <= max(len(sentence) - 1, 1):
             results.append((sentence, probability))
 
     return results
