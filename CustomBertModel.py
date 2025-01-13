@@ -114,8 +114,7 @@ class DataCollatorForMultiMask(DataCollatorForLanguageModeling):
         # 我们想让模型在进行mask操作时，更多的选择词组，而不是单个汉字，因此增加词组的权重
         for val in cand_indexes:
             # 如果是一个词组，则增加一个该词组的拷贝进入列表以增加权重
-            if 2 <= len(val) < 3:
-                weighted_cand_indexes.append(val.copy())
+            if 2 <= len(val) <= 3:
                 weighted_cand_indexes.append(val.copy())
 
         random.shuffle(weighted_cand_indexes)
@@ -171,7 +170,10 @@ class DataCollatorForMultiMask(DataCollatorForLanguageModeling):
         special_tokens_mask = [
             self.tokenizer.get_special_tokens_mask(val, already_has_special_tokens=True) for val in labels.tolist()
         ]
-        probability_matrix.masked_fill_(torch.tensor(special_tokens_mask, dtype=torch.bool), value=0.0)
+        try:
+            probability_matrix.masked_fill_(torch.tensor(special_tokens_mask, dtype=torch.bool), value=0.0)
+        except Exception:
+            print(special_tokens_mask)
         if self.tokenizer._pad_token is not None:
             padding_mask = labels.eq(self.tokenizer.pad_token_id)
             probability_matrix.masked_fill_(padding_mask, value=0.0)
@@ -185,7 +187,7 @@ class DataCollatorForMultiMask(DataCollatorForLanguageModeling):
         # print(replaced_index)
         for index in range(len(inputs)):
             replaced_index = [i for i, v in enumerate(indices_replaced[index]) if v]
-            print(replaced_index)
+            # print(replaced_index)
             # 修改mask逻辑，使用多种mask替代原有的单一[MASK]标签，并剔除无效[MASK]如标点符号
             indices_total = torch.nonzero(labels[index] != -100, as_tuple=True)[0].tolist()
             values = labels[index][indices_total]
