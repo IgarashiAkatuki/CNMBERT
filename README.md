@@ -1,4 +1,4 @@
-# zh-CN-Multi-Mask-Bert (CNMBert🍋)
+# zh-CN-Multi-Mask-BERT (CNMBERT🍋)
 ~~吃柠檬Bert~~
 ![image](https://github.com/user-attachments/assets/a888fde7-6766-43f1-a753-810399418bda)
 
@@ -24,18 +24,18 @@
 
 [大家为什么会讨厌缩写？ - 远方青木的回答 - 知乎](https://www.zhihu.com/question/269016377/answer/2654824753)
 
-### CNMBert
+### CNMBERT
 
 | Model           | 模型权重                                                    | Memory Usage (FP16) | Model Size | QPS   | MRR   | Acc   |
 | --------------- | ----------------------------------------------------------- | ------------------- | ---------- | ----- | ----- | ----- |
-| CNMBert-Default* | [Huggingface](https://huggingface.co/Midsummra/CNMBert)     | 0.4GB               | 131M       | 12.56 | 59.70 | 49.74 |
-| CNMBert-MoE     | [Huggingface](https://huggingface.co/Midsummra/CNMBert-MoE) | 0.8GB               | 329M       | 3.20  | 61.53 | 51.86 |
+| CNMBERT-Default* | [Huggingface](https://huggingface.co/Midsummra/CNMBert)     | 0.4GB               | 131M       | 12.56 | 59.70 | 49.74 |
+| CNMBERT-MoE     | [Huggingface](https://huggingface.co/Midsummra/CNMBert-MoE) | 0.8GB               | 329M       | 3.20  | 61.53 | 51.86 |
 
 * 所有模型均在相同的200万条wiki以及知乎语料下训练
 * QPS 为 queries per second 
 * MRR 为平均倒数排名(mean reciprocal rank)
 * Acc 为准确率(accuracy)
-* CNMBert-Default 存在[量化版本](https://huggingface.co/mradermacher/CNMBert-GGUF)
+* CNMBERT-Default 存在[量化版本](https://huggingface.co/mradermacher/CNMBert-GGUF)
 
 模型架构&性能对比:
 ![overall (1)](https://github.com/user-attachments/assets/cf9575c4-c37d-484b-8a3b-f8f536ca78c9)
@@ -114,7 +114,7 @@ Q: 感觉这个东西准确度有点低啊
 A: 可以尝试设置`fast_mode`和`strict_mode`为`False`。 模型是在很小的数据集(200w)上进行的预训练，所以泛化能力不足很正常，，，可以在更大数据集或者更加细分的领域进行微调，具体微调方式和[Chinese-BERT-wwm](https://github.com/ymcui/Chinese-BERT-wwm)差别不大，只需要将`DataCollactor`替换为`CustomBertModel.py`中的`DataCollatorForMultiMask`。
 
 ### 引用
-如果您对CNMBert的具体实现感兴趣的话，可以参考
+如果您对CNMBERT的具体实现感兴趣的话，可以参考
 ```
 @misc{feng2024cnmbertmodelhanyupinyin,
       title={CNMBert: A Model For Hanyu Pinyin Abbreviation to Character Conversion Task}, 
