@@ -31,7 +31,8 @@
 | CNMBERT-Default* | [Huggingface](https://huggingface.co/Midsummra/CNMBert)     | 0.4GB               | 131M       | 12.56 | 59.70 | 49.74 |
 | CNMBERT-MoE     | [Huggingface](https://huggingface.co/Midsummra/CNMBert-MoE) | 0.8GB               | 329M       | 3.20  | 61.53 | 51.86 |
 
-* 所有模型均在相同的200万条wiki以及知乎语料下训练
+* 所有模型均在相同的200万条wiki,知乎以及b站评论语料下训练
+* B站评论语料:[仓库](https://github.com/IgarashiAkatuki/BilibiliDatasets)
 * QPS 为 queries per second 
 * MRR 为平均倒数排名(mean reciprocal rank)
 * Acc 为准确率(accuracy)
