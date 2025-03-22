@@ -4,3 +4,5 @@ numpy>=2.1.1
 transformers>=4.45.0
 pypinyin>=0.53.0
 pkuseg==0.0.25
+ltp>=4.2.14
+datasets>=3.4.1
