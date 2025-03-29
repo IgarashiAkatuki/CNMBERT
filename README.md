@@ -4,21 +4,24 @@
 
 ---
 
-一个用来翻译拼音缩写的模型
+一个用来翻译拼音缩写/汉字谐音的模型
 
-此模型基于[Chinese-BERT-wwm](https://github.com/ymcui/Chinese-BERT-wwm)训练而来，通过修改其预训练任务来使其适配拼音缩写翻译任务，相较于微调过的GPT模型以及GPT-4o达到了sota
+此模型基于[Chinese-BERT-wwm](https://github.com/ymcui/Chinese-BERT-wwm)训练而来，通过修改其预训练任务来使其适配拼音缩写/汉字谐音翻译任务，相较于微调过的GPT模型以及GPT-4o达到了sota
 
 ---
 
-## 什么是拼音缩写
+## 什么是拼音缩写/汉字谐音
 
 形如:
 
 > "bhys" -> "不好意思"
 >
 > "kb" -> "看病"
+>
+> "将军是一 **支柱** " -> "将军是一 **只猪** "
+>
+> "想 **紫砂** 了" -> "想 **自杀** 了"
 
-这样的，使用拼音首字母来代替汉字的缩写，我们姑且称之为拼音缩写。
 
 如果对拼音缩写感兴趣可以看看这个↓
 
@@ -48,7 +51,7 @@
 ```python
 from transformers import AutoTokenizer, BertConfig
 
-from CustomBertModel import predict
+from CustomBertModel import predict, word_level_predict
 from MoELayer import BertWwmMoE
 ```
 
@@ -67,9 +70,11 @@ model = BertWwmMoE.from_pretrained('Midsummra/CNMBert-MoE', config=config).to('c
 预测词语
 
 ```python
+print(word_level_predict("将军是一支柱", "支柱", model, tokenizer)[:5])
 print(predict("我有两千kq", "kq", model, tokenizer)[:5])
-print(predict("快去给魔理沙看b吧", "b", model, tokenizer[:5]))
+print(predict("快去给魔理沙看b吧", "b", model, tokenizer)[:5])
 ```
+> ['只猪', 0.013427094615127833, 1.0], ['支主', 0.012690062437477466, 1.0], ['支州', 0.012477088056586812, 0.9230769230769231], ['支战', 0.01260267308151233, 0.7692307692307692], ['侄子', 0.012531780478518316, 0.7272727272727273]
 
 > ['块钱', 1.2056937473156175], ['块前', 0.05837443749364857], ['开千', 0.0483869208528063], ['可千', 0.03996622172280445], ['口气', 0.037183335575008414]
 
@@ -83,8 +88,8 @@ def predict(sentence: str,
             predict_word: str,
             model,
             tokenizer,
-            top_k=8,
-            beam_size=16, # 束宽
+            top_k=10,
+            beam_size=24, # 束宽
             threshold=0.005, # 阈值
             fast_mode=True, # 是否使用快速模式
             strict_mode=True): # 是否对输出结果进行检查
@@ -97,6 +102,17 @@ def backtrack_predict(sentence: str,
             top_k=10,
             fast_mode=True,
             strict_mode=True):
+
+# 如果要翻译汉字谐音，则使用word_level_predict
+def word_level_predictsentence: str, 
+            predict_word: str,
+            model,
+            tokenizer,
+            top_k=10,
+            beam_size=24, # 束宽
+            threshold=0.005, # 阈值
+            fast_mode=True, # 是否使用快速模式
+            strict_mode=True): # 是否对输出结果进行检查并使用Levenshtein Distance进行排序
 ```
 
 > 由于BERT的自编码特性，导致其在预测MASK时，顺序不同会导致预测结果不同，如果启用`fast_mode`，则会正向和反向分别对输入进行预测，可以提升一点准确率(2%左右)，但是会带来更大的性能开销。
@@ -113,6 +129,10 @@ def backtrack_predict(sentence: str,
 Q: 感觉这个东西准确度有点低啊
 
 A: 可以尝试设置`fast_mode`和`strict_mode`为`False`。 模型是在很小的数据集(200w)上进行的预训练，所以泛化能力不足很正常，，，可以在更大数据集或者更加细分的领域进行微调，具体微调方式和[Chinese-BERT-wwm](https://github.com/ymcui/Chinese-BERT-wwm)差别不大，只需要将`DataCollactor`替换为`CustomBertModel.py`中的`DataCollatorForMultiMask`。
+
+Q: 不能直接检测句子中所存在的拼音缩写或汉字谐音进行翻译吗？
+
+A: 正在做，对于拼音缩写来说，模型检测会很容易将其与句中的英文单词进行误判，导致准确率很低。对于汉字谐音来说，有些句子中的谐音，比如`你木琴没了`，这句话是不存在语病的，模型很难检测出`木琴`是`母亲`的谐音。
 
 ### 引用
 如果您对CNMBERT的具体实现感兴趣的话，可以参考
