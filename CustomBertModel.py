@@ -961,3 +961,42 @@ def softmax(beams: List):
 
     for i, row in enumerate(beams):
         row[2] = softmax_column[i]
+
+import Levenshtein
+
+def word_level_predict(sentence: str,
+            predict_word: str,
+            model,
+            tokenizer,
+            top_k=10,
+            beam_size=16,
+            threshold=0.000,
+            fast_mode=True,
+            strict_mode=True):
+    if predict_word.isascii():
+        return predict(sentence=sentence, predict_word=predict_word, model=model, tokenizer=tokenizer, top_k=top_k, threshold=threshold, fast_mode=fast_mode, beam_size=beam_size, strict_mode=strict_mode)
+    abbr_pinyin = []
+    full_pinyin = []
+    for character in predict_word:
+        if character.isascii():
+            abbr_pinyin.append(character)
+            full_pinyin.append(character)
+        else:
+            abbr_pinyin.append(pinyin(character, Style.FIRST_LETTER)[0][0])
+            full_pinyin.append(pinyin(character, Style.NORMAL)[0][0])
+    abbr_pinyin = ''.join(abbr_pinyin)
+    full_pinyin = ''.join(full_pinyin)
+    sentence = sentence.replace(predict_word, abbr_pinyin)
+    result = predict(sentence=sentence, predict_word=abbr_pinyin, model=model, tokenizer=tokenizer, top_k=top_k, threshold=threshold, fast_mode=fast_mode, beam_size=beam_size, strict_mode=strict_mode)
+
+    if fast_mode:
+        return result
+    else:
+        for val in result:
+            word_pinyin = []
+            for temp in pinyin(val[0], Style.NORMAL):
+                word_pinyin.append(temp[0])
+            word_pinyin = ''.join(word_pinyin)
+            val.append(Levenshtein.ratio(word_pinyin, full_pinyin))
+        result.sort(key=lambda x: (x[2], x[1]), reverse=True)
+        return result
