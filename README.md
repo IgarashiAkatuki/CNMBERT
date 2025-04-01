@@ -104,7 +104,7 @@ def backtrack_predict(sentence: str,
             strict_mode=True):
 
 # 如果要翻译汉字谐音，则使用word_level_predict
-def word_level_predictsentence: str, 
+def word_level_predict(sentence: str, 
             predict_word: str,
             model,
             tokenizer,
