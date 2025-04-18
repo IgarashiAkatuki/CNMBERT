@@ -1,5 +1,6 @@
 # zh-CN-Multi-Mask-BERT (CNMBERT🍋)
 ~~吃柠檬Bert~~
+Official repository of paper "CNMBERT: A Model for Converting Hanyu Pinyin Abbreviations to Chinese Characters" published on IJCNN 2025
 ![image](https://github.com/user-attachments/assets/a888fde7-6766-43f1-a753-810399418bda)
 
 ---
